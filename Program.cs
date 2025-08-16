@@ -1,3 +1,7 @@
+using Microsoft.EntityFrameworkCore;
+using MiniBackend.Data;
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Services
