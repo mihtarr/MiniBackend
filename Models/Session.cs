@@ -1,10 +1,9 @@
-namespace MiniBackend.Models
+namespace MiniBackend.Models;
+
+public class Session
 {
-    public class Session
-    {
-        public int Id { get; set; }
-        public int UserId { get; set; }
-        public DateTime StartedAt { get; set; }
-        public bool IsActive { get; set; }
-    }
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public string Token { get; set; } = string.Empty;
+    public DateTime Expiry { get; set; }
 }

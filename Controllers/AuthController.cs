@@ -1,55 +1,46 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using MiniBackend.Data;
 using MiniBackend.Models;
 
-namespace MiniBackend.Controllers
+namespace MiniBackend.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class AuthController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class AuthController : ControllerBase
+    private readonly AppDbContext _context;
+    public AuthController(AppDbContext context)
     {
-        private readonly AppDbContext _context;
-        public AuthController(AppDbContext context)
+        _context = context;
+    }
+
+    [HttpPost("register")]
+    public IActionResult Register([FromBody] User user)
+    {
+        if (_context.Users.Any(u => u.Username == user.Username))
+            return BadRequest("Username already exists");
+
+        _context.Users.Add(user);
+        _context.SaveChanges();
+        return Ok("User registered");
+    }
+
+    [HttpPost("login")]
+    public IActionResult Login([FromBody] User login)
+    {
+        var user = _context.Users.FirstOrDefault(u => u.Username == login.Username && u.Password == login.Password);
+        if (user == null) return Unauthorized("Invalid credentials");
+
+        var token = Guid.NewGuid().ToString();
+        var session = new Session
         {
-            _context = context;
-        }
+            UserId = user.Id,
+            Token = token,
+            Expiry = DateTime.UtcNow.AddHours(1)
+        };
+        _context.Sessions.Add(session);
+        _context.SaveChanges();
 
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] User login)
-        {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == login.Username && u.Password == login.Password);
-            if (user == null || !user.IsActive) return Unauthorized(new { message = "Invalid credentials or inactive subscription" });
-
-            // Tek aktif oturum kontrolü
-            var activeSession = await _context.Sessions.FirstOrDefaultAsync(s => s.UserId == user.Id && s.IsActive);
-            if (activeSession != null) return Conflict(new { message = "User already has an active session" });
-
-            var session = new Session { UserId = user.Id, StartedAt = DateTime.UtcNow, IsActive = true };
-            _context.Sessions.Add(session);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { sessionId = session.Id });
-        }
-
-        [HttpPost("session/check")]
-        public async Task<IActionResult> CheckSession([FromBody] int sessionId)
-        {
-            var session = await _context.Sessions.FirstOrDefaultAsync(s => s.Id == sessionId);
-            if (session == null || !session.IsActive) return Unauthorized(new { message = "Invalid or expired session" });
-
-            return Ok(new { message = "Session valid" });
-        }
-
-        [HttpPost("session/end")]
-        public async Task<IActionResult> EndSession([FromBody] int sessionId)
-        {
-            var session = await _context.Sessions.FirstOrDefaultAsync(s => s.Id == sessionId);
-            if (session == null) return NotFound();
-
-            session.IsActive = false;
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Session ended" });
-        }
+        return Ok(new { Token = token });
     }
 }
