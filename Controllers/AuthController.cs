@@ -32,7 +32,7 @@ namespace MiniBackend.Controllers
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] User login)
+        public IActionResult Login([FromBody] LoginRequest login)
         {
             var user = _db.Users.FirstOrDefault(u => u.Username == login.Username && u.Password == login.Password);
             if (user == null) return Unauthorized("Invalid credentials");
