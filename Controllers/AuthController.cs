@@ -91,7 +91,7 @@ public IActionResult Login([FromBody] LoginRequest request)
         [HttpPost("forgot-password")]
 public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
 {
-    //string email = request.Email?.Trim() ?? "";
+    string email = request.Email?.Trim() ?? "";
 
     //if (string.IsNullOrEmpty(email))
         //return BadRequest("Email cannot be empty");
@@ -113,7 +113,7 @@ public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest
     try
     {
         var resetLink = $"https://minifrontend-6ivp.onrender.com/reset-password.html?token={resetToken}";
-        _emailService.SendResetPasswordEmail(user.Email, resetLink);
+        _emailService.SendResetPasswordEmail(request.Email, resetLink);
         return Ok("A reset link has been sent to your email.");
     }
     catch (Exception ex)
