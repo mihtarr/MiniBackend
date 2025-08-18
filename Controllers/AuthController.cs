@@ -43,4 +43,30 @@ public class AuthController : ControllerBase
 
         return Ok(new { Token = token });
     }
+	
+	[HttpPost("forgot-password")]
+public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+{
+    var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+    if(user == null)
+        return Ok(); // Güvenlik için mail yoksa bile başarılı gibi göster
+
+    // Generate reset token
+    var resetToken = Guid.NewGuid().ToString();
+
+    // Save token to DB (user.ResetToken)
+    user.ResetToken = resetToken;
+    user.ResetTokenExpiration = DateTime.UtcNow.AddHours(1);
+    await _db.SaveChangesAsync();
+
+    // Send email
+    try {
+        var resetLink = $"https://minifrontend-6ivp.onrender.com/reset-password.html?token={resetToken}";
+        _emailService.SendResetPasswordEmail(user.Email, resetLink);
+        return Ok();
+    } catch(Exception ex) {
+        return StatusCode(500, "Error processing password reset: " + ex.Message);
+    }
+}
+
 }
