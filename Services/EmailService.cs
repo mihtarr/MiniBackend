@@ -1,7 +1,9 @@
 using SendGrid;
 using SendGrid.Helpers.Mail;
 
-public class EmailService
+namespace MiniBackend.Services
+{
+   public class EmailService
 {
     private readonly string _apiKey;
 
@@ -23,6 +25,10 @@ public class EmailService
         var response = await client.SendEmailAsync(msg);
     }
 }
+}
+
+
+
 
 
 
