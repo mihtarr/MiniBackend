@@ -88,7 +88,7 @@ public IActionResult Login([FromBody] LoginRequest request)
 }
 
 
-        [HttpPost("forgot-password")]
+[HttpPost("forgot-password")]
 public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
 {
     string email = request.Email?.Trim() ?? "";
@@ -113,7 +113,8 @@ public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest
     try
     {
         var resetLink = $"https://minifrontend-6ivp.onrender.com/reset-password.html?token={resetToken}";
-        _emailService.SendResetPasswordEmail(request.Email, resetLink);
+        // Burada SendGrid kullandığımız için await ekliyoruz
+        await _emailService.SendResetPasswordEmail(user.Email, resetLink);
         return Ok("A reset link has been sent to your email.");
     }
     catch (Exception ex)
@@ -121,6 +122,7 @@ public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest
         return StatusCode(500, "Error processing password reset: " + ex.Message);
     }
 }
+
 
     }
 }

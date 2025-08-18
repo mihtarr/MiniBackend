@@ -1,34 +1,28 @@
-using MailKit.Net.Smtp;
-using MailKit.Security;
-using MimeKit;
-
-namespace MiniBackend.Services;
+using SendGrid;
+using SendGrid.Helpers.Mail;
 
 public class EmailService
 {
-    private readonly string _smtpServer = "smtp.office365.com"; // Outlook için
-    private readonly int _port = 587;
-    private readonly string _from = "stmydk@outlook.com"; // Outlook mail adresin
-    private readonly string _password = "@gu@44JF3j&2Ey;";   // App Password
+    private readonly string _apiKey;
 
-    public void SendResetPasswordEmail(string to, string resetLink)
+    public EmailService(IConfiguration configuration)
     {
-        var message = new MimeMessage();
-        message.From.Add(new MailboxAddress("Mini Game Platform", _from));
-        message.To.Add(MailboxAddress.Parse(to));
-        message.Subject = "Password Reset Request";
-        message.Body = new TextPart("plain")
-        {
-            Text = $"You requested a password reset.\nClick the link below to reset your password:\n{resetLink}\n\n" +
-                   "If you did not request this, please secure your account."
-        };
+        _apiKey = configuration["SENDGRID_API_KEY"];
+    }
 
-        using var client = new SmtpClient();
-        client.Connect(_smtpServer, _port, SecureSocketOptions.StartTls); // TLS
-        client.Authenticate(_from, _password);
-        client.Send(message);
-        client.Disconnect(true);
+    public async Task SendResetPasswordEmail(string toEmail, string resetLink)
+    {
+        var client = new SendGridClient(_apiKey);
+        var from = new EmailAddress("stmydk@outlook.com", "Mini Game Platform");
+        var subject = "Password Reset Request";
+        var to = new EmailAddress(toEmail);
+        var plainTextContent = $"Click the link to reset your password: {resetLink}";
+        var htmlContent = $"<p>Click the link to reset your password:</p><a href='{resetLink}'>Reset Password</a>";
+
+        var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
+        var response = await client.SendEmailAsync(msg);
     }
 }
+
 
 

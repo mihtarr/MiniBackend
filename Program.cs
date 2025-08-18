@@ -21,7 +21,8 @@ builder.Services.AddCors(options =>
 });
 
 // Email service
-builder.Services.AddSingleton<EmailService>();
+builder.Services.AddScoped<EmailService>();
+
 
 var app = builder.Build();
 app.UseCors();
