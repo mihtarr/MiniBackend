@@ -87,7 +87,6 @@ public IActionResult Login([FromBody] LoginRequest request)
     return Ok(new { Token = token });
 }
 
-
 [HttpPost("forgot-password")]
 public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
 {
