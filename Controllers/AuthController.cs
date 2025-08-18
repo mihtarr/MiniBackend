@@ -87,7 +87,7 @@ public IActionResult Login([FromBody] LoginRequest request)
     return Ok(new { Token = token });
 }
 
-[HttpPost("forgot-password")]
+/*[HttpPost("forgot-password")]
 public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
 {
     string email = request.Email?.Trim() ?? "";
@@ -120,7 +120,7 @@ public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest
     {
         return StatusCode(500, "Error processing password reset: " + ex.Message);
     }
-}
+}*/
 
 
     }
