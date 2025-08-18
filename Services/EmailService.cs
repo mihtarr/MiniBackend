@@ -5,7 +5,7 @@ namespace MiniBackend.Services
 {
     public class EmailService
     {
-        private readonly string _smtpServer = "smtp-mail.outlook.com";
+        private readonly string _smtpServer = "smtp.office365.com";
         private readonly int _port = 587;
         private readonly string _from = "stmydk@outlook.com";
         private readonly string _password = "@gu@44JF3j&2Ey;"; // Gmail App Password
@@ -14,7 +14,7 @@ namespace MiniBackend.Services
         {
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress("Mini Game Platform", _from));
-            message.To.Add(new MailboxAddress("", to));
+            message.To.Add(MailboxAddress.Parse(to));
             message.Subject = "Password Reset Request";
             message.Body = new TextPart("plain")
             {
@@ -23,10 +23,11 @@ namespace MiniBackend.Services
             };
 
             using var client = new SmtpClient();
-            client.Connect(_smtpServer, _port, false);
+            client.Connect(_smtpServer, _port, MailKit.Security.SecureSocketOptions.StartTls);
             client.Authenticate(_from, _password);
             client.Send(message);
             client.Disconnect(true);
         }
     }
 }
+

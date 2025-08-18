@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MiniBackend.Data;
-using MiniBackend.Services; // EmailService burada olacak
+using MiniBackend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,19 +11,19 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins("https://minifrontend-6ivp.onrender.com") // senin frontend URL’in
+        policy.WithOrigins("https://minifrontend-6ivp.onrender.com")
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
 
-// Email Service (singleton)
+// Email service
 builder.Services.AddSingleton<EmailService>();
 
 var app = builder.Build();
-
 app.UseCors();
 
 // DB auto create
@@ -40,13 +40,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Render için HTTPS yönlendirme kapalı
-// app.UseHttpsRedirection();
-
+// app.UseHttpsRedirection(); // Render için devre dışı
 app.UseAuthorization();
 app.MapControllers();
 
-// Render için doğru portu al
+// Render port
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 app.Urls.Add($"http://*:{port}");
 
