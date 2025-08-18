@@ -5,10 +5,10 @@ namespace MiniBackend.Services
 {
     public class EmailService
     {
-        private readonly string _smtpServer = "smtp.gmail.com";
+        private readonly string _smtpServer = "smtp-mail.outlook.com";
         private readonly int _port = 587;
-        private readonly string _from = "yourmail@gmail.com";
-        private readonly string _password = "app_password"; // Gmail App Password
+        private readonly string _from = "stmydk@outlook.com";
+        private readonly string _password = "@gu@44JF3j&2Ey;"; // Gmail App Password
 
         public void SendResetPasswordEmail(string to, string resetLink)
         {

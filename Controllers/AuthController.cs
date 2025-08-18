@@ -21,34 +21,65 @@ namespace MiniBackend.Controllers
         }
 
         [HttpPost("register")]
-        public IActionResult Register([FromBody] User user)
-        {
-            if (_db.Users.Any(u => u.Username == user.Username))
-                return BadRequest("Username already exists");
+public IActionResult Register([FromBody] RegisterRequest request)
+{
+    // Trim boşlukları temizle
+    string username = request.Username?.Trim() ?? "";
+    string email = request.Email?.Trim() ?? "";
 
-            _db.Users.Add(user);
-            _db.SaveChanges();
-            return Ok("User registered");
-        }
+    if (string.IsNullOrEmpty(username))
+        return BadRequest("Username cannot be empty");
+
+    if (string.IsNullOrEmpty(email))
+        return BadRequest("Email cannot be empty");
+
+    if (_db.Users.Any(u => u.Username == username))
+        return BadRequest("Username already exists");
+
+    if (_db.Users.Any(u => u.Email == email))
+        return BadRequest("Email already exists");
+
+    var user = new User
+    {
+        Username = username,
+        Email = email,
+        Password = request.Password
+    };
+
+    _db.Users.Add(user);
+    _db.SaveChanges();
+
+    return Ok("User registered successfully");
+}
+
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginRequest login)
-        {
-            var user = _db.Users.FirstOrDefault(u => u.Username == login.Username && u.Password == login.Password);
-            if (user == null) return Unauthorized("Invalid credentials");
+public IActionResult Login([FromBody] LoginRequest request)
+{
+    string username = request.Username?.Trim() ?? "";
+    string password = request.Password ?? "";
 
-            var token = Guid.NewGuid().ToString();
-            var session = new Session
-            {
-                UserId = user.Id,
-                Token = token,
-                Expiry = DateTime.UtcNow.AddHours(1)
-            };
-            _db.Sessions.Add(session);
-            _db.SaveChanges();
+    if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+        return BadRequest("Username and password cannot be empty");
 
-            return Ok(new { Token = token });
-        }
+    var user = _db.Users.FirstOrDefault(u => u.Username == username && u.Password == password);
+    if (user == null)
+        return Unauthorized("Invalid credentials");
+
+    var token = Guid.NewGuid().ToString();
+    var session = new Session
+    {
+        UserId = user.Id,
+        Token = token,
+        Expiry = DateTime.UtcNow.AddHours(1)
+    };
+
+    _db.Sessions.Add(session);
+    _db.SaveChanges();
+
+    return Ok(new { Token = token });
+}
+
 
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
