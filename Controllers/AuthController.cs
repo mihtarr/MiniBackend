@@ -91,10 +91,10 @@ public IActionResult Login([FromBody] LoginRequest request)
         [HttpPost("forgot-password")]
 public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
 {
-    string email = request.Email?.Trim() ?? "";
+    //string email = request.Email?.Trim() ?? "";
 
-    if (string.IsNullOrEmpty(email))
-        return BadRequest("Email cannot be empty");
+    //if (string.IsNullOrEmpty(email))
+        //return BadRequest("Email cannot be empty");
 
     var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
 
