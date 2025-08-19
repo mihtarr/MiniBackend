@@ -11,13 +11,12 @@ namespace MiniBackend.Models
         public string? ResetToken { get; set; }
         public DateTime? ResetTokenExpiration { get; set; }
 
-        // Email onay için ek alanlar
+        // Email onay alanları
         public bool IsEmailConfirmed { get; set; } = false;
         public string? EmailConfirmationToken { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // Yeni email onayı için
-        public string? PendingNewEmail { get; set; }
+        // Yeni email değişikliği için
+        public string? NewEmail { get; set; }
         public string? NewEmailConfirmationToken { get; set; }
     }
 }
