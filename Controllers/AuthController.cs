@@ -161,7 +161,7 @@ namespace MiniBackend.Controllers
             user.NewEmailConfirmationToken = Guid.NewGuid().ToString();
 
             var confirmLink = $"https://minibackend-zwep.onrender.com/api/auth/confirm-new-email?token={user.NewEmailConfirmationToken}";
-            await _emailService.SendEmailConfirmation(user.NewEmail, confirmLink);
+            await _emailService.SendConfirmationEmail(user.NewEmail, confirmLink);
 
             await _db.SaveChangesAsync();
 
