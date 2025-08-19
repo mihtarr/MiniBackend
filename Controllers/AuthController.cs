@@ -129,7 +129,7 @@ namespace MiniBackend.Controllers
             }
         }
 
-        [HttpGet("confirm-email")] // Yeni kullanıcı oluştururken
+        [HttpGet("confirm-email")] // Yeni kullanıcı oluştururken // sakın silme!! mail onay linke tıklayınca buradan kontrol ediliyor.
         public async Task<IActionResult> ConfirmEmail([FromQuery] string token)
         {
             var user = _db.Users.FirstOrDefault(u => u.EmailConfirmationToken == token);
@@ -203,6 +203,35 @@ namespace MiniBackend.Controllers
             await _db.SaveChangesAsync();
 
             return Ok("Password changed successfully.");
+        }
+
+        [HttpPost("resend-verification")]
+        public async Task<IActionResult> ResendVerification([FromBody] ResendVerificationRequest request)
+        {
+            string email = request.Email?.Trim() ?? "";
+
+            if (string.IsNullOrEmpty(email))
+                return BadRequest("Email cannot be empty");
+
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user == null)
+                return BadRequest("User not found.");
+
+            if (user.IsEmailConfirmed)
+                return BadRequest("This email is already confirmed.");
+
+            // Generate new token
+            user.EmailConfirmationToken = Guid.NewGuid().ToString();
+
+            // Save changes
+            await _db.SaveChangesAsync();
+
+            // Send new confirmation email
+            var confirmLink = $"https://minibackend-zwep.onrender.com/api/auth/confirm-email?token={user.EmailConfirmationToken}";
+            await _emailService.SendConfirmationEmail(user.Email, confirmLink);
+
+            return Ok("A new confirmation email has been sent.");
         }
     }
 }
