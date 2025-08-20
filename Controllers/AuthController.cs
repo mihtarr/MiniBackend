@@ -139,7 +139,7 @@ namespace MiniBackend.Controllers
             var user = authHelper.GetUserFromToken(token);
             if (user == null) return Unauthorized("Invalid or expired token.");
 
-            return Ok(user.Password + " - " +  request.OldPassword + " - " +  request.NewPassword);
+            return Ok(user.Password + " - " + request.OldPassword + " - " + request.NewPassword);
 
             if (user.Password != request.OldPassword)
                 return BadRequest("Old password is incorrect.");
@@ -152,6 +152,33 @@ namespace MiniBackend.Controllers
 
             return Ok("Password changed successfully.");
         }
+
+        [HttpPost("reset-password")] // API: /api/auth/reset-password
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            if (string.IsNullOrEmpty(request.Token) || string.IsNullOrEmpty(request.NewPassword))
+                return BadRequest("Invalid request.");
+
+            var user = await _db.Users.FirstOrDefaultAsync(u =>
+                u.ResetToken == request.Token &&
+                u.ResetTokenExpiration > DateTime.UtcNow);
+
+            if (user == null)
+                return BadRequest("Invalid or expired token.");
+
+            if (request.NewPassword.Length < 8)
+                return BadRequest("Password must be at least 8 characters long.");
+
+            // Update password
+            user.Password = request.NewPassword; // TODO: hash this in production!
+            user.ResetToken = null;
+            user.ResetTokenExpiration = null;
+
+            await _db.SaveChangesAsync();
+
+            return Ok("Password has been reset successfully.");
+        }
+
 
 
         [HttpGet("confirm-email")] // Yeni kullanıcı oluştururken // sakın silme!! mail onay linke tıklayınca buradan kontrol ediliyor.
@@ -207,7 +234,7 @@ namespace MiniBackend.Controllers
 
             return Ok("Your new email has been confirmed.");
         }
-        
+
         [HttpPost("resend-verification")]
         public async Task<IActionResult> ResendVerification([FromBody] ResendVerificationRequest request)
         {
