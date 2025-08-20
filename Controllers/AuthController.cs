@@ -95,7 +95,7 @@ namespace MiniBackend.Controllers
             return Ok(new { Token = token });
         }
 
-        [HttpPost("forgot-password")]
+        [HttpPost("forgot-password")] // şifremi unuttum kısmının apisi. mail adresi girilince maile link atan api
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
             string email = request.Email?.Trim() ?? "";
@@ -128,6 +128,31 @@ namespace MiniBackend.Controllers
                 return StatusCode(500, "Error processing password reset: " + ex.Message);
             }
         }
+
+        [HttpPost("change-password")] // profil sayfasından şifre değiştirme apisi
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            var token = Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
+            if (string.IsNullOrEmpty(token)) return Unauthorized("Missing token.");
+
+            var authHelper = new AuthHelper(_db);
+            var user = authHelper.GetUserFromToken(token);
+            if (user == null) return Unauthorized("Invalid or expired token.");
+
+            return Ok(user.Password + " - " +  request.OldPassword + " - " +  request.NewPassword);
+
+            if (user.Password != request.OldPassword)
+                return BadRequest("Old password is incorrect.");
+
+            if (request.NewPassword.Length < 8)
+                return BadRequest("New password must be at least 8 characters long.");
+
+            user.Password = request.NewPassword;
+            await _db.SaveChangesAsync();
+
+            return Ok("Password changed successfully.");
+        }
+
 
         [HttpGet("confirm-email")] // Yeni kullanıcı oluştururken // sakın silme!! mail onay linke tıklayınca buradan kontrol ediliyor.
         public async Task<IActionResult> ConfirmEmail([FromQuery] string token)
@@ -182,29 +207,7 @@ namespace MiniBackend.Controllers
 
             return Ok("Your new email has been confirmed.");
         }
-
-        [HttpPost("change-password")]
-        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
-        {
-            var token = Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
-            if (string.IsNullOrEmpty(token)) return Unauthorized("Missing token.");
-
-            var authHelper = new AuthHelper(_db);
-            var user = authHelper.GetUserFromToken(token);
-            if (user == null) return Unauthorized("Invalid or expired token.");
-
-            if (user.Password != request.OldPassword)
-                return BadRequest("Old password is incorrect.");
-
-            if (request.NewPassword.Length < 8)
-                return BadRequest("New password must be at least 8 characters long.");
-
-            user.Password = request.NewPassword;
-            await _db.SaveChangesAsync();
-
-            return Ok("Password changed successfully.");
-        }
-
+        
         [HttpPost("resend-verification")]
         public async Task<IActionResult> ResendVerification([FromBody] ResendVerificationRequest request)
         {
