@@ -139,8 +139,6 @@ namespace MiniBackend.Controllers
             var user = authHelper.GetUserFromToken(token);
             if (user == null) return Unauthorized("Invalid or expired token.");
 
-            return Ok(user.Password + " - " + request.OldPassword + " - " + request.NewPassword);
-
             if (user.Password != request.OldPassword)
                 return BadRequest("Old password is incorrect.");
 
