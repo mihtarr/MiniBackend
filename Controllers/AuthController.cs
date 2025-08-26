@@ -17,12 +17,14 @@ namespace MiniBackend.Controllers
     {
         private readonly AppDbContext _db;
         private readonly EmailService _emailService;
+        private readonly IConfiguration _config;
 
-        public AuthController(AppDbContext db, EmailService emailService)
-        {
-            _db = db;
-            _emailService = emailService;
-        }
+        public AuthController(AppDbContext db, EmailService emailService, IConfiguration config)
+{
+    _db = db;
+    _emailService = emailService;
+    _config = config; // <-- Burada atanıyor
+}
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
@@ -160,7 +162,7 @@ public async Task<IActionResult> Login([FromBody] LoginRequest request)
 
         private string GenerateJwtToken(User user)
 {
-    var key = Encoding.ASCII.GetBytes(_config["JwtKey"] ?? "SuperSecretKey123!");
+    var key = Encoding.ASCII.GetBytes(_config["JwtKey"] ?? "f8G7#d2!KqL9vPzX1mN6@bR4yT0wZ3eH");
     var tokenHandler = new JwtSecurityTokenHandler();
     var tokenDescriptor = new SecurityTokenDescriptor
     {
@@ -170,10 +172,14 @@ public async Task<IActionResult> Login([FromBody] LoginRequest request)
             new Claim(ClaimTypes.Name, user.Username)
         }),
         Expires = DateTime.UtcNow.AddHours(2),
-        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        SigningCredentials = new SigningCredentials(
+            new SymmetricSecurityKey(key),
+            SecurityAlgorithms.HmacSha256Signature
+        )
     };
     return tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
 }
+
 
     }
 }
