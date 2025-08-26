@@ -1,0 +1,9 @@
+C:\Users\Yavuz\Documents\GitHub\MiniBackend\obj\Debug\net7.0\MiniBackend.csproj.AssemblyReference.cache
+C:\Users\Yavuz\Documents\GitHub\MiniBackend\obj\Debug\net7.0\rpswa.dswa.cache.json
+C:\Users\Yavuz\Documents\GitHub\MiniBackend\obj\Debug\net7.0\MiniBackend.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Yavuz\Documents\GitHub\MiniBackend\obj\Debug\net7.0\MiniBackend.AssemblyInfoInputs.cache
+C:\Users\Yavuz\Documents\GitHub\MiniBackend\obj\Debug\net7.0\MiniBackend.AssemblyInfo.cs
+C:\Users\Yavuz\Documents\GitHub\MiniBackend\obj\Debug\net7.0\MiniBackend.csproj.CoreCompileInputs.cache
+C:\Users\Yavuz\Documents\GitHub\MiniBackend\obj\Debug\net7.0\MiniBackend.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\Yavuz\Documents\GitHub\MiniBackend\obj\Debug\net7.0\MiniBackend.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\Yavuz\Documents\GitHub\MiniBackend\obj\Debug\net7.0\MiniBackend.sourcelink.json
