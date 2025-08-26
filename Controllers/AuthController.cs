@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MiniBackend.Data;
 using MiniBackend.Models;
 using MiniBackend.Services;
+using MiniBackend.Helpers;
 
 namespace MiniBackend.Controllers
 {
@@ -22,244 +23,135 @@ namespace MiniBackend.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            string username = request.Username?.Trim() ?? "";
-            string email = request.Email?.Trim() ?? "";
-            string password = request.Password ?? "";
+            if (string.IsNullOrWhiteSpace(request.Username) ||
+                string.IsNullOrWhiteSpace(request.Email) ||
+                string.IsNullOrWhiteSpace(request.Password))
+                return BadRequest("Username, email and password are required");
 
-            if (string.IsNullOrEmpty(username))
-                return BadRequest("Username cannot be empty");
-
-            if (string.IsNullOrEmpty(email))
-                return BadRequest("Email cannot be empty");
-
-            if (string.IsNullOrEmpty(password))
-                return BadRequest("Password cannot be empty");
-
-            if (password.Length < 8)
-                return BadRequest("Password must be at least 8 characters long");
-
-            if (_db.Users.Any(u => u.Username == username))
+            if (_db.Users.Any(u => u.Username == request.Username))
                 return BadRequest("Username already exists");
-
-            if (_db.Users.Any(u => u.Email == email))
+            if (_db.Users.Any(u => u.Email == request.Email))
                 return BadRequest("Email already exists");
 
             var user = new User
             {
-                Username = username,
-                Email = email,
-                Password = password,
-                IsEmailConfirmed = false,
+                Username = request.Username,
+                Email = request.Email,
+                Password = PasswordHelper.HashPassword(request.Password),
                 EmailConfirmationToken = Guid.NewGuid().ToString()
             };
-
-            // Email onay linki
-            var confirmLink = $"https://minibackend-zwep.onrender.com/api/auth/confirm-email?token={user.EmailConfirmationToken}";
-            await _emailService.SendConfirmationEmail(user.Email, confirmLink);
-            // TODO: istersen ayrı SendConfirmationEmail metodu ekleyebilirsin
 
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
 
-            return Ok("User registered successfully. Please check your email to confirm your account.");
+            var confirmLink = $"https://minibackend-zwep.onrender.com/api/auth/confirm-email?token={user.EmailConfirmationToken}";
+            await _emailService.SendConfirmationEmail(user.Email, confirmLink);
+
+            return Ok("User registered successfully. Please confirm your email.");
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginRequest request)
-        {
-            string username = request.Username?.Trim() ?? "";
-            string password = request.Password ?? "";
+public async Task<IActionResult> Login([FromBody] LoginRequest request)
+{
+    if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+        return BadRequest("Username and password cannot be empty");
 
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
-                return BadRequest("Username and password cannot be empty");
+    // Kullanıcıyı username ile alıyoruz
+    var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
+    if (user == null)
+        return Unauthorized("Invalid credentials");
 
-            var user = _db.Users.FirstOrDefault(u => u.Username == username && u.Password == password);
+    // Şifre doğrulama (hash ile)
+    if (!PasswordHelper.VerifyPassword(request.Password, user.Password))
+        return Unauthorized("Invalid credentials");
 
-            if (user == null)
-                return Unauthorized("Invalid credentials");
+    if (!user.IsEmailConfirmed)
+        return Unauthorized("Please confirm your email");
 
-            if (!user.IsEmailConfirmed)
-                return Unauthorized("Please confirm your email before logging in.");
+    // JWT token oluştur
+    var token = GenerateJwtToken(user);
 
-            var token = Guid.NewGuid().ToString();
-            var session = new Session
-            {
-                UserId = user.Id,
-                Token = token,
-                Expiry = DateTime.UtcNow.AddHours(1)
-            };
+    return Ok(new { Token = token });
+}
 
-            _db.Sessions.Add(session);
-            _db.SaveChanges();
 
-            return Ok(new { Token = token });
-        }
-
-        [HttpPost("forgot-password")] // şifremi unuttum kısmının apisi. mail adresi girilince maile link atan api
+        [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
-            string email = request.Email?.Trim() ?? "";
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+            if (user == null) return BadRequest("Email not registered");
 
-            if (string.IsNullOrEmpty(email))
-                return BadRequest("Email cannot be empty");
-
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
-
-            if (user == null)
-                return BadRequest("Email not registered");
-
-            // Generate reset token
-            var resetToken = Guid.NewGuid().ToString();
-
-            // Save token to DB
-            user.ResetToken = resetToken;
+            user.ResetToken = Guid.NewGuid().ToString();
             user.ResetTokenExpiration = DateTime.UtcNow.AddHours(1);
             await _db.SaveChangesAsync();
 
-            // Send email
-            try
-            {
-                var resetLink = $"https://minifrontend-6ivp.onrender.com/reset-password.html?token={resetToken}";
-                await _emailService.SendResetPasswordEmail(user.Email, resetLink);
-                return Ok("A reset link has been sent to your email.");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Error processing password reset: " + ex.Message);
-            }
+            var resetLink = $"https://minifrontend-6ivp.onrender.com/reset-password.html?token={user.ResetToken}";
+            await _emailService.SendResetPasswordEmail(user.Email, resetLink);
+
+            return Ok("Reset link sent to email");
         }
 
-        [HttpPost("change-password")] // profil sayfasından şifre değiştirme apisi
-        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
-        {
-            var token = Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
-            if (string.IsNullOrEmpty(token)) return Unauthorized("Missing token.");
-
-            var authHelper = new AuthHelper(_db);
-            var user = authHelper.GetUserFromToken(token);
-            if (user == null) return Unauthorized("Invalid or expired token.");
-
-            if (user.Password != request.OldPassword)
-                return BadRequest("Old password is incorrect.");
-
-            if (request.NewPassword.Length < 8)
-                return BadRequest("New password must be at least 8 characters long.");
-
-            user.Password = request.NewPassword;
-            await _db.SaveChangesAsync();
-
-            return Ok("Password changed successfully.");
-        }
-
-        [HttpPost("reset-password")] // API: /api/auth/reset-password
+        [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
         {
-            if (string.IsNullOrEmpty(request.Token) || string.IsNullOrEmpty(request.NewPassword))
-                return BadRequest("Invalid request.");
-
             var user = await _db.Users.FirstOrDefaultAsync(u =>
-                u.ResetToken == request.Token &&
-                u.ResetTokenExpiration > DateTime.UtcNow);
+                u.ResetToken == request.Token && u.ResetTokenExpiration > DateTime.UtcNow);
 
-            if (user == null)
-                return BadRequest("Invalid or expired token.");
+            if (user == null) return BadRequest("Invalid or expired token");
 
-            if (request.NewPassword.Length < 8)
-                return BadRequest("Password must be at least 8 characters long.");
-
-            // Update password
-            user.Password = request.NewPassword; // TODO: hash this in production!
+            user.Password = PasswordHelper.HashPassword(request.NewPassword); // TODO: hashle
             user.ResetToken = null;
             user.ResetTokenExpiration = null;
 
             await _db.SaveChangesAsync();
-
-            return Ok("Password has been reset successfully.");
+            return Ok("Password reset successfully");
         }
 
-
-
-        [HttpGet("confirm-email")] // Yeni kullanıcı oluştururken // sakın silme!! mail onay linke tıklayınca buradan kontrol ediliyor.
+        [HttpGet("confirm-email")]
         public async Task<IActionResult> ConfirmEmail([FromQuery] string token)
         {
-            var user = _db.Users.FirstOrDefault(u => u.EmailConfirmationToken == token);
-
-            if (user == null)
-                return BadRequest("Invalid token.");
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.EmailConfirmationToken == token);
+            if (user == null) return BadRequest("Invalid token");
 
             user.IsEmailConfirmed = true;
             user.EmailConfirmationToken = null;
             await _db.SaveChangesAsync();
 
-            return Ok("Your email has been confirmed! You can now login.");
+            return Ok("Email confirmed");
         }
 
         [HttpPost("change-email")]
         public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest request)
         {
-            var token = Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
-            if (string.IsNullOrEmpty(token)) return Unauthorized("Missing token.");
-
-            var authHelper = new AuthHelper(_db);
-            var user = authHelper.GetUserFromToken(token);
-            if (user == null) return Unauthorized("Invalid or expired token.");
+            // Token kontrolü eklenebilir
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
+            if (user == null) return BadRequest("User not found");
 
             if (_db.Users.Any(u => u.Email == request.NewEmail))
-                return BadRequest("This email is already registered.");
+                return BadRequest("Email already used");
 
             user.NewEmail = request.NewEmail;
             user.NewEmailConfirmationToken = Guid.NewGuid().ToString();
+            await _db.SaveChangesAsync();
 
             var confirmLink = $"https://minibackend-zwep.onrender.com/api/auth/confirm-new-email?token={user.NewEmailConfirmationToken}";
             await _emailService.SendConfirmationEmail(user.NewEmail, confirmLink);
 
-            await _db.SaveChangesAsync();
-
-            return Ok("Confirmation link has been sent to your new email. Please confirm to activate it.");
+            return Ok("Confirmation link sent to new email");
         }
-
 
         [HttpGet("confirm-new-email")]
         public async Task<IActionResult> ConfirmNewEmail([FromQuery] string token)
         {
-            var user = _db.Users.FirstOrDefault(u => u.NewEmailConfirmationToken == token);
-            if (user == null) return BadRequest("Invalid token.");
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.NewEmailConfirmationToken == token);
+            if (user == null) return BadRequest("Invalid token");
 
             user.Email = user.NewEmail!;
             user.NewEmail = null;
             user.NewEmailConfirmationToken = null;
             await _db.SaveChangesAsync();
 
-            return Ok("Your new email has been confirmed.");
-        }
-
-        [HttpPost("resend-verification")]
-        public async Task<IActionResult> ResendVerification([FromBody] ResendVerificationRequest request)
-        {
-            string email = request.Email?.Trim() ?? "";
-
-            if (string.IsNullOrEmpty(email))
-                return BadRequest("Email cannot be empty");
-
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
-
-            if (user == null)
-                return BadRequest("User not found.");
-
-            if (user.IsEmailConfirmed)
-                return BadRequest("This email is already confirmed.");
-
-            // Generate new token
-            user.EmailConfirmationToken = Guid.NewGuid().ToString();
-
-            // Save changes
-            await _db.SaveChangesAsync();
-
-            // Send new confirmation email
-            var confirmLink = $"https://minibackend-zwep.onrender.com/api/auth/confirm-email?token={user.EmailConfirmationToken}";
-            await _emailService.SendConfirmationEmail(user.Email, confirmLink);
-
-            return Ok("A new confirmation email has been sent.");
+            return Ok("New email confirmed");
         }
     }
 }
