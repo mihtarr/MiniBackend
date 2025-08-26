@@ -153,5 +153,23 @@ public async Task<IActionResult> Login([FromBody] LoginRequest request)
 
             return Ok("New email confirmed");
         }
+
+        private string GenerateJwtToken(User user)
+{
+    var key = Encoding.ASCII.GetBytes(_config["JwtKey"] ?? "SuperSecretKey123!");
+    var tokenHandler = new JwtSecurityTokenHandler();
+    var tokenDescriptor = new SecurityTokenDescriptor
+    {
+        Subject = new ClaimsIdentity(new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Username)
+        }),
+        Expires = DateTime.UtcNow.AddHours(2),
+        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+    };
+    return tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
+}
+
     }
 }

@@ -9,7 +9,8 @@ namespace MiniBackend.Services
 
         public EmailService(IConfiguration configuration)
         {
-            _apiKey = configuration["SENDGRID_API_KEY"];
+            _apiKey = configuration["SENDGRID_API_KEY"] 
+                ?? throw new ArgumentNullException("SENDGRID_API_KEY", "SendGrid API key is missing in configuration.");
         }
 
         public async Task SendResetPasswordEmail(string toEmail, string resetLink)
