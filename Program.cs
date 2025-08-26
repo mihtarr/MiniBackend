@@ -7,10 +7,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Services
 builder.Services.AddControllers();
 
-// PostgreSQL bağla
+// PostgreSQL bağlantısı
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -18,7 +19,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins("https://minifrontend-6ivp.onrender.com")
+        policy.WithOrigins("https://minifrontend-6ivp.onrender.com") // frontend URL
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
@@ -26,29 +27,33 @@ builder.Services.AddCors(options =>
 // Email service
 builder.Services.AddScoped<EmailService>();
 
-
+// IConfiguration erişimi AuthController için zaten var
 var app = builder.Build();
+
+// CORS middleware
 app.UseCors();
 
-// DB auto create
+// DB auto migrate
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
 }
 
-// Middleware
+// Swagger (sadece dev ortamı)
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// app.UseHttpsRedirection(); // Render için devre dışı
+// HTTPS Render için devre dışı
+// app.UseHttpsRedirection();
+
 app.UseAuthorization();
 app.MapControllers();
 
-// Render port
+// Render port ayarı
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 app.Urls.Add($"http://*:{port}");
 
