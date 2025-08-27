@@ -20,11 +20,11 @@ namespace MiniBackend.Controllers
         private readonly IConfiguration _config;
 
         public AuthController(AppDbContext db, EmailService emailService, IConfiguration config)
-{
-    _db = db;
-    _emailService = emailService;
-    _config = config; // <-- Burada atanıyor
-}
+        {
+            _db = db;
+            _emailService = emailService;
+            _config = config; // <-- Burada atanıyor
+        }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
@@ -57,28 +57,28 @@ namespace MiniBackend.Controllers
         }
 
         [HttpPost("login")]
-public async Task<IActionResult> Login([FromBody] LoginRequest request)
-{
-    if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
-        return BadRequest("Username and password cannot be empty");
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+                return BadRequest("Username and password cannot be empty");
 
-    // Kullanıcıyı username ile alıyoruz
-    var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
-    if (user == null)
-        return Unauthorized("Invalid credentials");
+            // Kullanıcıyı username ile alıyoruz
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
+            if (user == null)
+                return Unauthorized("Invalid credentials");
 
-    // Şifre doğrulama (hash ile)
-    if (!PasswordHelper.VerifyPassword(request.Password, user.Password))
-        return Unauthorized("Invalid credentials");
+            // Şifre doğrulama (hash ile)
+            if (!PasswordHelper.VerifyPassword(request.Password, user.Password))
+                return Unauthorized("Invalid credentials");
 
-    if (!user.IsEmailConfirmed)
-        return Unauthorized("Please confirm your email");
+            if (!user.IsEmailConfirmed)
+                return Unauthorized("Please confirm your email");
 
-    // JWT token oluştur
-    var token = GenerateJwtToken(user);
+            // JWT token oluştur
+            var token = GenerateJwtToken(user);
 
-    return Ok(new { Token = token });
-}
+            return Ok(new { Token = token });
+        }
 
 
         [HttpPost("forgot-password")]
@@ -111,6 +111,25 @@ public async Task<IActionResult> Login([FromBody] LoginRequest request)
 
             await _db.SaveChangesAsync();
             return Ok("Password reset successfully");
+        }
+
+        [HttpPost("change-password")]  //profil sayfasından şifre değiştirme apisi 
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            var token = Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
+
+            if (string.IsNullOrEmpty(token)) return Unauthorized("Missing token.");
+
+            var authHelper = new AuthHelper(_db);
+            var user = authHelper.GetUserFromToken(token);
+
+            if (user == null) return Unauthorized("Invalid or expired token.");
+            if (user.Password != request.OldPassword) return BadRequest("Old password is incorrect.");
+            if (request.NewPassword.Length < 8) return BadRequest("New password must be at least 8 characters long.");
+
+            user.Password = PasswordHelper.HashPassword(request.NewPassword);
+            await _db.SaveChangesAsync();
+            return Ok("Password changed successfully.");
         }
 
         [HttpGet("confirm-email")]
@@ -160,25 +179,50 @@ public async Task<IActionResult> Login([FromBody] LoginRequest request)
             return Ok("New email confirmed");
         }
 
-        private string GenerateJwtToken(User user)
-{
-    var key = Encoding.ASCII.GetBytes(_config["JwtKey"] ?? "f8G7#d2!KqL9vPzX1mN6@bR4yT0wZ3eH");
-    var tokenHandler = new JwtSecurityTokenHandler();
-    var tokenDescriptor = new SecurityTokenDescriptor
-    {
-        Subject = new ClaimsIdentity(new[]
+        [HttpPost("resend-verification")]
+        public async Task<IActionResult> ResendVerification([FromBody] ResendVerificationRequest request)
         {
+            string email = request.Email?.Trim() ?? "";
+
+            if (string.IsNullOrEmpty(email)) return BadRequest("Email cannot be empty");
+
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user == null) return BadRequest("User not found.");
+            if (user.IsEmailConfirmed) return BadRequest("This email is already confirmed.");
+
+            // Generate new token
+            user.EmailConfirmationToken = Guid.NewGuid().ToString();
+
+            // Save changes
+            await _db.SaveChangesAsync();
+
+            // Send new confirmation email
+            var confirmLink = $"https://minibackend-zwep.onrender.com/api/auth/confirm-email?token={user.EmailConfirmationToken}";
+
+            await _emailService.SendConfirmationEmail(user.Email, confirmLink);
+            return Ok("A new confirmation email has been sent.");
+        }
+
+        private string GenerateJwtToken(User user)
+        {
+            var key = Encoding.ASCII.GetBytes(_config["JwtKey"] ?? "f8G7#d2!KqL9vPzX1mN6@bR4yT0wZ3eH");
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.Username)
         }),
-        Expires = DateTime.UtcNow.AddHours(2),
-        SigningCredentials = new SigningCredentials(
-            new SymmetricSecurityKey(key),
-            SecurityAlgorithms.HmacSha256Signature
-        )
-    };
-    return tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
-}
+                Expires = DateTime.UtcNow.AddHours(2),
+                SigningCredentials = new SigningCredentials(
+                    new SymmetricSecurityKey(key),
+                    SecurityAlgorithms.HmacSha256Signature
+                )
+            };
+            return tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
+        }
 
 
     }
