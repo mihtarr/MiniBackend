@@ -148,7 +148,7 @@ namespace MiniBackend.Controllers
                 return Unauthorized("Missing token.");
 
             // Token ile kullanıcıyı al
-            var user = await authHelper.GetUserFromToken(token);
+            var user = await _authHelper.GetUserFromToken(token);
 
             if (user == null)
                 return Unauthorized("Invalid or expired token.");
@@ -199,7 +199,7 @@ namespace MiniBackend.Controllers
             if (string.IsNullOrEmpty(token))
                 return Unauthorized("Missing token.");
 
-            var user = await authHelper.GetUserFromToken(token);
+            var user = await _authHelper.GetUserFromToken(token);
 
             if (user == null)
                 return Unauthorized("Invalid or expired token.");
