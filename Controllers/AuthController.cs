@@ -74,7 +74,7 @@ namespace MiniBackend.Controllers
                 return Unauthorized("Please confirm your email");
 
             // JWT token oluştur
-            var token = authHelper.GenerateJwtToken(user);
+            var token = _authHelper.GenerateJwtToken(user);
 
             return Ok(new { Token = token });
         }
@@ -101,7 +101,7 @@ namespace MiniBackend.Controllers
             await _db.SaveChangesAsync();
 
             // Frontend linki config veya sabit URL
-            var frontendUrl = authHelper._config["FrontendUrl"] ?? "https://minifrontend-6ivp.onrender.com";
+            var frontendUrl = _authHelper._config["FrontendUrl"] ?? "https://minifrontend-6ivp.onrender.com";
             var resetLink = $"{frontendUrl}/password.html?token={user.ResetToken}";
 
             // Reset e-mail gönder
@@ -145,7 +145,7 @@ namespace MiniBackend.Controllers
                 return Unauthorized("Missing token.");
 
             // Token ile kullanıcıyı al
-            var user = authHelper.GetUserFromToken(token);
+            var user = _authHelper.GetUserFromToken(token);
 
             if (user == null)
                 return Unauthorized("Invalid or expired token.");
@@ -196,7 +196,7 @@ namespace MiniBackend.Controllers
             if (string.IsNullOrEmpty(token))
                 return Unauthorized("Missing token.");
 
-            var user = authHelper.GetUserFromToken(token); // token çözülmeli ve user dönmeli
+            var user = _authHelper.GetUserFromToken(token); // token çözülmeli ve user dönmeli
 
             if (user == null)
                 return Unauthorized("Invalid or expired token.");
