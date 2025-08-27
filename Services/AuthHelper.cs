@@ -1,5 +1,10 @@
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
+using System.Text;
 using MiniBackend.Data;
 using MiniBackend.Models;
+
 
 namespace MiniBackend.Services
 {
