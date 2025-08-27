@@ -55,9 +55,7 @@ namespace MiniBackend.Services
                     IssuerSigningKey = new SymmetricSecurityKey(key),
                     ValidateIssuer = false,
                     ValidateAudience = false,
-                     RequireExpirationTime = false,
-                     ValidateLifetime = false
-                    //ClockSkew = TimeSpan.Zero
+                    ClockSkew = TimeSpan.Zero
                 }, out SecurityToken validatedToken);
 
                 var jwtToken = (JwtSecurityToken)validatedToken;
