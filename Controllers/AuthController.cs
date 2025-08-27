@@ -176,6 +176,7 @@ namespace MiniBackend.Controllers
         }
 
 
+
         [HttpGet("confirm-new-email")]
         public async Task<IActionResult> ConfirmNewEmail([FromQuery] string token)
         {
@@ -190,7 +191,7 @@ namespace MiniBackend.Controllers
             return Ok("New email confirmed");
         }
 
-        
+
 
         [HttpPost("resend-verification")]
         public async Task<IActionResult> ResendVerification([FromBody] ResendVerificationRequest request)
