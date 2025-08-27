@@ -149,7 +149,7 @@ namespace MiniBackend.Controllers
 
             // Token ile kullanıcıyı al
             var user = await _authHelper.GetUserFromToken(token);
-            return BadRequest(user.token);
+            return BadRequest(user);
 
             if (user == null)
                 return Unauthorized("Invalid or expired token.");
