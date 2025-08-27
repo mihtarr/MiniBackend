@@ -17,13 +17,12 @@ namespace MiniBackend.Controllers
     {
         private readonly AppDbContext _db;
         private readonly EmailService _emailService;
-        private readonly IConfiguration _config;
-
-        public AuthController(AppDbContext db, EmailService emailService, IConfiguration config)
+        private readonly AuthHelper _authHelper;
+        public AuthController(AppDbContext db, EmailService emailService, AuthHelper authHelper)
         {
             _db = db;
             _emailService = emailService;
-            _config = config;
+            _authHelper = authHelper;
         }
 
         [HttpPost("register")]
@@ -75,7 +74,6 @@ namespace MiniBackend.Controllers
                 return Unauthorized("Please confirm your email");
 
             // JWT token oluştur
-            var authHelper = new AuthHelper(_db);
             var token = authHelper.GenerateJwtToken(user);
 
             return Ok(new { Token = token });
@@ -103,7 +101,7 @@ namespace MiniBackend.Controllers
             await _db.SaveChangesAsync();
 
             // Frontend linki config veya sabit URL
-            var frontendUrl = _config["FrontendUrl"] ?? "https://minifrontend-6ivp.onrender.com";
+            var frontendUrl = authHelper._config["FrontendUrl"] ?? "https://minifrontend-6ivp.onrender.com";
             var resetLink = $"{frontendUrl}/password.html?token={user.ResetToken}";
 
             // Reset e-mail gönder
@@ -147,7 +145,6 @@ namespace MiniBackend.Controllers
                 return Unauthorized("Missing token.");
 
             // Token ile kullanıcıyı al
-            var authHelper = new AuthHelper(_db);
             var user = authHelper.GetUserFromToken(token);
 
             if (user == null)
@@ -199,7 +196,6 @@ namespace MiniBackend.Controllers
             if (string.IsNullOrEmpty(token))
                 return Unauthorized("Missing token.");
 
-            var authHelper = new AuthHelper(_db);
             var user = authHelper.GetUserFromToken(token); // token çözülmeli ve user dönmeli
 
             if (user == null)
