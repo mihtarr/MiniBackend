@@ -4,17 +4,19 @@ using System.Security.Claims;
 using System.Text;
 using MiniBackend.Data;
 using MiniBackend.Models;
-
+using Microsoft.Extensions.Configuration;
 
 namespace MiniBackend.Services
 {
     public class AuthHelper
     {
         private readonly AppDbContext _db;
+        private readonly IConfiguration _config;
 
-        public AuthHelper(AppDbContext db)
+        public AuthHelper(AppDbContext db, IConfiguration config)
         {
             _db = db;
+            _config = config;
         }
 
         public User? GetUserFromToken(string token)
@@ -43,6 +45,6 @@ namespace MiniBackend.Services
             {
                 return null; // Geçersiz veya süresi dolmuş token
             }
-        }
+        }        
     }
 }
