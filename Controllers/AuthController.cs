@@ -121,10 +121,8 @@ namespace MiniBackend.Controllers
                 return BadRequest("Token and new password must be provided.");
 
             // Token ile kullanıcıyı al, süresi geçmişse null döner
-            // var user = await _db.Users.FirstOrDefaultAsync(u =>
-            //  u.ResetToken == request.Token && u.ResetTokenExpiration.HasValue && u.ResetTokenExpiration > DateTime.UtcNow);
-
-            var user = await _authHelper.GetUserFromToken(token);
+            var user = await _db.Users.FirstOrDefaultAsync(u =>
+                u.ResetToken == request.Token && u.ResetTokenExpiration.HasValue && u.ResetTokenExpiration > DateTime.UtcNow);
 
             if (user == null)
                 return BadRequest("Invalid or expired token.");
@@ -180,8 +178,7 @@ namespace MiniBackend.Controllers
             if (string.IsNullOrEmpty(token))
                 return BadRequest("Token is required.");
 
-            //var user = await _db.Users.FirstOrDefaultAsync(u => u.EmailConfirmationToken == token);
-            var user = await _authHelper.GetUserFromToken(token);
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.EmailConfirmationToken == token);
             if (user == null)
                 return BadRequest("Invalid or expired token.");
 
@@ -267,6 +264,6 @@ namespace MiniBackend.Controllers
             return Ok("A new confirmation email has been sent.");
         }
 
-
+        
     }
 }
