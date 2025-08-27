@@ -27,6 +27,8 @@ builder.Services.AddCors(options =>
 // Email service
 builder.Services.AddScoped<EmailService>();
 
+builder.Services.AddScoped<AuthHelper>();
+
 // IConfiguration erişimi AuthController için zaten var
 var app = builder.Build();
 
