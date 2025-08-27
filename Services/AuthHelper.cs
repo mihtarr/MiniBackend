@@ -19,7 +19,7 @@ namespace MiniBackend.Services
             _config = config;
         }
 
-        private string GenerateJwtToken(User user)
+        public string GenerateJwtToken(User user)
         {
             var key = Encoding.ASCII.GetBytes(_config["JwtKey"] ?? "f8G7#d2!KqL9vPzX1mN6@bR4yT0wZ3eH");
             var tokenHandler = new JwtSecurityTokenHandler();
