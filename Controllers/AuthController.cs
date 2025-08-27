@@ -17,13 +17,11 @@ namespace MiniBackend.Controllers
     {
         private readonly AppDbContext _db;
         private readonly EmailService _emailService;
-        private readonly IConfiguration _config;
 
         public AuthController(AppDbContext db, EmailService emailService, IConfiguration config)
         {
             _db = db;
             _emailService = emailService;
-            _config = config; // <-- Burada atanıyor
         }
 
         [HttpPost("register")]
@@ -75,7 +73,8 @@ namespace MiniBackend.Controllers
                 return Unauthorized("Please confirm your email");
 
             // JWT token oluştur
-            var token = GenerateJwtToken(user);
+            var authHelper = new AuthHelper(_db);
+            var token = authHelper.GenerateJwtToken(user);
 
             return Ok(new { Token = token });
         }
@@ -102,7 +101,8 @@ namespace MiniBackend.Controllers
             await _db.SaveChangesAsync();
 
             // Frontend linki config veya sabit URL
-            var frontendUrl = _config["FrontendUrl"] ?? "https://minifrontend-6ivp.onrender.com";
+            var authHelper = new AuthHelper(_db);
+            var frontendUrl = authHelper._config["FrontendUrl"] ?? "https://minifrontend-6ivp.onrender.com";
             var resetLink = $"{frontendUrl}/password.html?token={user.ResetToken}";
 
             // Reset e-mail gönder
@@ -264,24 +264,6 @@ namespace MiniBackend.Controllers
             return Ok("A new confirmation email has been sent.");
         }
 
-        private string GenerateJwtToken(User user)
-        {
-            var key = Encoding.ASCII.GetBytes(_config["JwtKey"] ?? "f8G7#d2!KqL9vPzX1mN6@bR4yT0wZ3eH");
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Username)
-        }),
-                Expires = DateTime.UtcNow.AddHours(2),
-                SigningCredentials = new SigningCredentials(
-                    new SymmetricSecurityKey(key),
-                    SecurityAlgorithms.HmacSha256Signature
-                )
-            };
-            return tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
-        }
+        
     }
 }
