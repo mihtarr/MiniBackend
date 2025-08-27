@@ -91,7 +91,7 @@ namespace MiniBackend.Controllers
             user.ResetTokenExpiration = DateTime.UtcNow.AddHours(1);
             await _db.SaveChangesAsync();
 
-            var resetLink = $"https://minifrontend-6ivp.onrender.com/reset-password.html?token={user.ResetToken}";
+            var resetLink = $"https://minifrontend-6ivp.onrender.com/password.html?token={user.ResetToken}";
             await _emailService.SendResetPasswordEmail(user.Email, resetLink);
 
             return Ok("Reset link sent to email");
@@ -113,24 +113,30 @@ namespace MiniBackend.Controllers
             return Ok("Password reset successfully");
         }
 
-        [HttpPost("change-password")]  //profil sayfasından şifre değiştirme apisi 
+        [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
         {
             var token = Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
-
             if (string.IsNullOrEmpty(token)) return Unauthorized("Missing token.");
 
             var authHelper = new AuthHelper(_db);
             var user = authHelper.GetUserFromToken(token);
 
             if (user == null) return Unauthorized("Invalid or expired token.");
-            if (user.Password != request.OldPassword) return BadRequest("Old password is incorrect.");
-            if (request.NewPassword.Length < 8) return BadRequest("New password must be at least 8 characters long.");
+
+            // Hash'lenmiş şifre kontrolü
+            if (!PasswordHelper.VerifyPassword(request.OldPassword, user.Password))
+                return BadRequest("Old password is incorrect.");
+
+            if (request.NewPassword.Length < 8)
+                return BadRequest("New password must be at least 8 characters long.");
 
             user.Password = PasswordHelper.HashPassword(request.NewPassword);
             await _db.SaveChangesAsync();
+
             return Ok("Password changed successfully.");
         }
+
 
         [HttpGet("confirm-email")]
         public async Task<IActionResult> ConfirmEmail([FromQuery] string token)
@@ -148,9 +154,13 @@ namespace MiniBackend.Controllers
         [HttpPost("change-email")]
         public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest request)
         {
-            // Token kontrolü eklenebilir
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
-            if (user == null) return BadRequest("User not found");
+            var token = Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
+            if (string.IsNullOrEmpty(token)) return Unauthorized("Missing token.");
+
+            var authHelper = new AuthHelper(_db);
+            var user = authHelper.GetUserFromToken(token);
+
+            if (user == null) return Unauthorized("Invalid or expired token.");
 
             if (_db.Users.Any(u => u.Email == request.NewEmail))
                 return BadRequest("Email already used");
@@ -164,6 +174,7 @@ namespace MiniBackend.Controllers
 
             return Ok("Confirmation link sent to new email");
         }
+
 
         [HttpGet("confirm-new-email")]
         public async Task<IActionResult> ConfirmNewEmail([FromQuery] string token)
