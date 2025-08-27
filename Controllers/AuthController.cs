@@ -144,7 +144,6 @@ namespace MiniBackend.Controllers
         {
             // Authorization header'dan token al
             var token = Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
-            return Unauthorized(token);
             if (string.IsNullOrEmpty(token))
                 return Unauthorized("Missing token.");
 
