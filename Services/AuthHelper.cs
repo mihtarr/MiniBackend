@@ -39,7 +39,7 @@ namespace MiniBackend.Services
             return tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
         }
 
-        public User? GetUserFromToken(string token)
+        public async Task<User?> GetUserFromToken(string token)
         {
             if (string.IsNullOrEmpty(token)) return null;
 
@@ -59,7 +59,7 @@ namespace MiniBackend.Services
                 var jwtToken = (JwtSecurityToken)validatedToken;
                 var userId = int.Parse(jwtToken.Claims.First(x => x.Type == ClaimTypes.NameIdentifier).Value);
 
-                return _db.Users.FirstOrDefault(u => u.Id == userId);
+                return await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
             }
             catch
             {
