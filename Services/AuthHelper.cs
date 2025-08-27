@@ -5,6 +5,8 @@ using System.Text;
 using MiniBackend.Data;
 using MiniBackend.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace MiniBackend.Services
 {
