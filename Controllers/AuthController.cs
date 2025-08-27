@@ -190,6 +190,8 @@ namespace MiniBackend.Controllers
             return Ok("New email confirmed");
         }
 
+        
+
         [HttpPost("resend-verification")]
         public async Task<IActionResult> ResendVerification([FromBody] ResendVerificationRequest request)
         {
