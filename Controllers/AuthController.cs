@@ -17,11 +17,13 @@ namespace MiniBackend.Controllers
     {
         private readonly AppDbContext _db;
         private readonly EmailService _emailService;
+        private readonly IConfiguration _config;
 
         public AuthController(AppDbContext db, EmailService emailService, IConfiguration config)
         {
             _db = db;
             _emailService = emailService;
+            _config = config;
         }
 
         [HttpPost("register")]
@@ -101,8 +103,7 @@ namespace MiniBackend.Controllers
             await _db.SaveChangesAsync();
 
             // Frontend linki config veya sabit URL
-            var authHelper = new AuthHelper(_db);
-            var frontendUrl = authHelper._config["FrontendUrl"] ?? "https://minifrontend-6ivp.onrender.com";
+            var frontendUrl = _config["FrontendUrl"] ?? "https://minifrontend-6ivp.onrender.com";
             var resetLink = $"{frontendUrl}/password.html?token={user.ResetToken}";
 
             // Reset e-mail gönder
