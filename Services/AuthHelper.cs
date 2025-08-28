@@ -25,12 +25,13 @@ namespace MiniBackend.Services
         {
             var key = Encoding.ASCII.GetBytes(_config["JwtKey"] ?? "f8G7#d2!KqL9vPzX1mN6@bR4yT0wZ3eH");
             var tokenHandler = new JwtSecurityTokenHandler();
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Username)
+            new Claim("nameid", user.Id.ToString()),   // ✅ burada "nameid"
+            new Claim("unique_name", user.Username)    // aynı şekilde "unique_name"
         }),
                 Expires = DateTime.UtcNow.AddHours(2),
                 SigningCredentials = new SigningCredentials(
@@ -38,8 +39,10 @@ namespace MiniBackend.Services
                     SecurityAlgorithms.HmacSha256Signature
                 )
             };
+
             return tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
         }
+
 
         public async Task<User?> GetUserFromToken(string token)
         {
@@ -49,6 +52,7 @@ namespace MiniBackend.Services
             {
                 var key = Encoding.ASCII.GetBytes(_config["JwtKey"] ?? "f8G7#d2!KqL9vPzX1mN6@bR4yT0wZ3eH");
                 var tokenHandler = new JwtSecurityTokenHandler();
+
                 tokenHandler.ValidateToken(token, new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
@@ -59,7 +63,14 @@ namespace MiniBackend.Services
                 }, out SecurityToken validatedToken);
 
                 var jwtToken = (JwtSecurityToken)validatedToken;
-                var userId = int.Parse(jwtToken.Claims.First(x => x.Type == ClaimTypes.NameIdentifier).Value);
+
+                // "nameid" veya ClaimTypes.NameIdentifier ikisini de destekle
+                var userIdClaim = jwtToken.Claims.FirstOrDefault(x =>
+                    x.Type == ClaimTypes.NameIdentifier || x.Type == "nameid");
+
+                if (userIdClaim == null) return null;
+
+                var userId = int.Parse(userIdClaim.Value);
 
                 return await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
             }
@@ -67,6 +78,7 @@ namespace MiniBackend.Services
             {
                 return null; // Geçersiz veya süresi dolmuş token
             }
-        }        
+        }
+
     }
 }

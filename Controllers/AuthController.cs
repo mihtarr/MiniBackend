@@ -142,8 +142,9 @@ namespace MiniBackend.Controllers
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
         {
-            var rawToken = HttpContext.Request.Headers["Authorization"].ToString();
-            return Ok("Gelen header: " + rawToken);
+            //var rawToken = HttpContext.Request.Headers["Authorization"].ToString();
+            //return Ok("Gelen header: " + rawToken);
+
             // Authorization header'dan token al
             var token = Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
 
@@ -267,6 +268,6 @@ namespace MiniBackend.Controllers
             return Ok("A new confirmation email has been sent.");
         }
 
-        
+
     }
 }
