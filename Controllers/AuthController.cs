@@ -142,9 +142,11 @@ namespace MiniBackend.Controllers
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
         {
+            var rawToken = HttpContext.Request.Headers["Authorization"].ToString();
+            return Ok("Gelen header: " + rawToken);
             // Authorization header'dan token al
             var token = Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
-            return Unauthorized(token);
+
             if (string.IsNullOrEmpty(token))
                 return Unauthorized("Missing token.");
 
